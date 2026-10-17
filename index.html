@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bura</title>
+<style>
+:root{
+  --felt:#1c4636; --felt-dark:#102a20; --wood:#38230f; --wood-light:#5b3a1c;
+  --cream:#f2ead6; --ink:#17130f; --red:#a3261d; --brass:#c9a04a; --muted:#a9bcaf;
+  --serif:Georgia,"Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{
+  font-family:var(--sans);color:var(--cream);background-color:var(--felt);
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .32 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    radial-gradient(ellipse at 50% 40%,rgba(255,255,255,.06),rgba(0,0,0,.38) 85%);
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+[hidden]{display:none!important}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+.btn{background:var(--cream);color:var(--ink);border:0;border-radius:3px;padding:12px 18px;font-weight:600;cursor:pointer;
+  box-shadow:0 2px 0 rgba(0,0,0,.45)}
+.btn:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,.45)}
+.btn.brass{background:var(--brass)}
+.btn.quiet{background:transparent;color:var(--cream);box-shadow:inset 0 0 0 1px rgba(242,234,214,.35)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+input{background:rgba(0,0,0,.28);border:1px solid rgba(242,234,214,.28);border-radius:3px;padding:11px 12px;width:100%}
+input::placeholder{color:rgba(242,234,214,.5)}
+#conn{position:fixed;top:0;left:0;right:0;background:var(--red);padding:6px;text-align:center;font-size:14px;z-index:20}
+
+/* ---------- lobby ---------- */
+.page{min-height:100%;padding:36px 22px 40px;max-width:520px;margin:0 auto}
+h1{font-family:var(--serif);font-size:52px;line-height:1;margin:0 0 6px;font-weight:700}
+.lead{margin:0 0 28px;color:var(--muted);line-height:1.5;max-width:34ch}
+.block{padding:18px 0;border-top:1px solid rgba(242,234,214,.2)}
+.block h2{font-family:var(--serif);font-size:20px;margin:0 0 4px;font-weight:700}
+.block p{margin:0 0 12px;color:var(--muted);font-size:15px;line-height:1.45}
+.row{display:flex;gap:8px;align-items:stretch}
+.row input{min-width:0}
+.field{margin-bottom:22px}
+.field label{display:block;margin-bottom:6px;font-size:14px;color:var(--muted)}
+#err{min-height:22px;color:#f0b4a8;margin-top:10px}
+.codefield{margin-top:26px;font-size:13px}
+.codefield label{display:block;margin-bottom:5px;color:var(--muted)}
+.codefield input{max-width:220px;padding:8px 10px;font-size:14px}
+
+/* ---------- baza kutish ---------- */
+#wait .big{font-family:var(--serif);font-size:84px;letter-spacing:.12em;margin:18px 0 8px;font-weight:700;color:var(--brass)}
+#wait p{color:var(--muted);line-height:1.5;max-width:36ch}
+
+/* ---------- stol ---------- */
+#game{height:100vh;height:100dvh;display:flex;flex-direction:column;
+  border:clamp(8px,2vw,16px) solid var(--wood);border-image:none;
+  box-shadow:inset 0 0 0 2px var(--wood-light),inset 0 0 60px rgba(0,0,0,.55)}
+.top{display:flex;justify-content:space-between;align-items:baseline;padding:10px 16px 0}
+.top .who{font-family:var(--serif);font-size:18px}
+.top .sc{color:var(--muted);font-size:14px}
+.top .sc b{color:var(--cream);font-family:var(--serif);font-size:18px}
+.oppzone{display:flex;justify-content:center;padding-top:8px;height:calc(var(--cws)*1.4*.62 + 14px)}
+.oppzone .fan{display:flex}
+.oppzone .card{margin-left:calc(var(--cws)*-.5)}
+.oppzone .card:first-child{margin-left:0}
+.mid{flex:1;min-height:0;display:flex;align-items:center;justify-content:space-around;padding:0 10px;gap:8px}
+.deckwrap{position:relative;width:calc(var(--cws)*2.2);height:calc(var(--cws)*1.4);flex:none}
+.deckwrap .card{position:absolute;top:0}
+.deckwrap .stack{left:0;z-index:2}
+.deckwrap .stack.two{box-shadow:2px 2px 0 #c9bfa5,3px 3px 0 rgba(0,0,0,.5),5px 6px 8px rgba(0,0,0,.4)}
+.deckwrap .under{left:calc(var(--cws)*.95);transform:rotate(90deg);z-index:1}
+.deckwrap .suitonly{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.deckwrap .suitonly svg{width:calc(var(--cws)*.8);height:calc(var(--cws)*.8);fill:currentColor;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
+.deckwrap .suitonly.red{color:#d4574c}
+.deckwrap .suitonly.blk{color:var(--cream)}
+.deckn{position:absolute;bottom:-20px;left:0;font-size:13px;color:var(--muted)}
+.play{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+.trick{display:flex;min-height:calc(var(--cws)*1.4+6px);align-items:center;justify-content:center;flex-wrap:wrap}
+.trick .card{margin:0 -4px;animation:drop .22s ease-out}
+.trick.old .card{opacity:.55;animation:none}
+.lasttext{font-size:13px;color:var(--muted);min-height:18px;text-align:center}
+@keyframes drop{from{transform:translateY(-26px) rotate(var(--rot,0deg));opacity:0}to{transform:rotate(var(--rot,0deg));opacity:1}}
+.msg{text-align:center;padding:4px 16px 6px;min-height:28px;color:var(--brass);font-size:15px}
+.handzone{display:flex;justify-content:center;align-items:flex-end;padding:10px 6px 6px;min-height:calc(var(--cw)*1.4 + 34px)}
+.hand{display:flex;padding-top:20px}
+.hand .card{margin-left:calc(var(--cw)*-.1);cursor:pointer;transform-origin:50% 120%;
+  transform:translateY(var(--y,0)) rotate(var(--r,0deg));transition:transform .13s}
+.hand .card:first-child{margin-left:0}
+.hand .card.sel{transform:translateY(calc(var(--y,0px) - 20px)) rotate(var(--r,0deg))}
+.hand.locked .card{cursor:default}
+.actions{display:flex;gap:10px;justify-content:center;padding:6px 14px 14px}
+.actions .btn{min-width:130px}
+
+/* ---------- kartalar ---------- */
+.card{--cw:inherit;position:relative;flex:none;width:var(--cw);height:calc(var(--cw)*1.4);font-size:calc(var(--cw)/10);
+  border-radius:calc(var(--cw)*.07);background:linear-gradient(160deg,#f7f1e0,#eadfc5);color:var(--ink);
+  box-shadow:0 1px 0 #fff8 inset,0 1px 1px rgba(0,0,0,.5),0 3px 6px rgba(0,0,0,.35);user-select:none}
+.card.red{color:var(--red)}
+.card .idx{position:absolute;display:flex;flex-direction:column;align-items:center;line-height:1;width:2.6em}
+.card .idx b{font-family:var(--serif);font-size:1.6em;font-weight:700;letter-spacing:-.06em}
+.card .idx svg{width:1.25em;height:1.25em;fill:currentColor;margin-top:.12em}
+.card .tl{top:.55em;left:.45em}
+.card .br{bottom:.55em;right:.45em;transform:rotate(180deg)}
+.card .field{position:absolute;inset:0}
+.card .pip{position:absolute;width:19%;aspect-ratio:1;transform:translate(-50%,-50%)}
+.card .pip.flip{transform:translate(-50%,-50%) rotate(180deg)}
+.card .pip.big{width:44%}
+.card .pip svg{display:block;width:100%;height:100%;fill:currentColor}
+.card .royal{position:absolute;left:25%;right:25%;top:11%;bottom:11%;border:1px solid currentColor;display:flex;flex-direction:column;
+  align-items:center;justify-content:space-between;padding:.5em 0;
+  background:repeating-linear-gradient(135deg,rgba(0,0,0,.05) 0 2px,transparent 2px 6px)}
+.card .royal b{font-family:var(--serif);font-size:3.4em;line-height:1;font-weight:700}
+.card .royal svg{width:1.7em;height:1.7em;fill:currentColor}
+.card .royal svg:last-child{transform:rotate(180deg)}
+.card.back{background:#7c1d1a;border:calc(var(--cw)*.06) solid #f2ead6}
+.card.back::after{content:"";position:absolute;inset:calc(var(--cw)*.05);border:1px solid rgba(242,234,214,.7);
+  background:
+    repeating-linear-gradient(45deg,rgba(242,234,214,.28) 0 1px,transparent 1px 7px),
+    repeating-linear-gradient(-45deg,rgba(242,234,214,.28) 0 1px,transparent 1px 7px)}
+
+/* ---------- natija ---------- */
+#over{position:fixed;inset:0;background:rgba(8,18,13,.82);display:flex;align-items:center;justify-content:center;padding:24px;z-index:10}
+#over .box{background:var(--felt-dark);border:1px solid rgba(242,234,214,.3);border-radius:4px;padding:26px 24px;max-width:340px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+#over h2{font-family:var(--serif);font-size:30px;margin:0 0 8px}
+#over p{margin:4px 0;color:var(--muted)}
+#over .row{margin-top:18px}
+#over .row .btn{flex:1}
+
+#game{--cw:clamp(60px,19vw,92px);--cws:clamp(44px,13vw,66px)}
+.mid .card,.trick .card,.oppzone .card,.deckwrap .card{width:var(--cws);height:calc(var(--cws)*1.4);font-size:calc(var(--cws)/10)}
+.hand .card{width:var(--cw);height:calc(var(--cw)*1.4);font-size:calc(var(--cw)/10)}
+@media(min-width:760px){#game{--cw:92px;--cws:70px}}
+@media(prefers-reduced-motion:reduce){.hand .card{transition:none}.trick .card{animation:none}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="s0" viewBox="0 0 100 100"><path d="M50 4C50 4 8 38 8 62C8 78 23 86 37 79C35 89 31 94 24 97H76C69 94 65 89 63 79C77 86 92 78 92 62C92 38 50 4 50 4Z"/></symbol>
+  <symbol id="s1" viewBox="0 0 100 100"><path d="M50 93C50 93 6 62 6 34C6 17 19 6 33 6C42 6 48 12 50 19C52 12 58 6 67 6C81 6 94 17 94 34C94 62 50 93 50 93Z"/></symbol>
+  <symbol id="s2" viewBox="0 0 100 100"><path d="M50 3L89 50L50 97L11 50Z"/></symbol>
+  <symbol id="s3" viewBox="0 0 100 100"><path d="M50 5C38 5 30 14 30 26C30 31 32 36 35 40C32 38 28 37 24 37C13 37 5 46 5 57C5 68 13 77 24 77C31 77 37 73 42 67C42 79 38 89 30 96H70C62 89 58 79 58 67C63 73 69 77 76 77C87 77 95 68 95 57C95 46 87 37 76 37C72 37 68 38 65 40C68 36 70 31 70 26C70 14 62 5 50 5Z"/></symbol>
+</svg>
+
+<div id="conn" hidden>Aloqa uzildi, qayta ulanmoqda</div>
+
+<main class="page" id="lobby">
+  <h1>Bura</h1>
+  <p class="lead">Ikki kishilik karta o'yini. Botga qarshi mashq qiling yoki do'stingiz bilan onlayn o'ynang.</p>
+
+  <div class="field">
+    <label for="name">Ismingiz</label>
+    <input id="name" maxlength="20" autocomplete="nickname" placeholder="Masalan, Aziz">
+  </div>
+
+  <section class="block">
+    <h2>Botga qarshi</h2>
+    <p>Internet orqali boshqa odam kerak emas. Bot sizga qarshi o'ynaydi.</p>
+    <button class="btn brass" id="vsBot">Botga qarshi o'ynash</button>
+  </section>
+
+  <section class="block">
+    <h2>Onlayn, do'st bilan</h2>
+    <p>Baza oching, tizim 4 xonali raqam beradi. Do'stingiz shu raqamni kiritsa, o'yin boshlanadi.</p>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn" id="create">Baza ochish</button>
+    </div>
+    <div class="row">
+      <input id="room" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Baza raqami, masalan 0224" aria-label="Baza raqami">
+      <button class="btn quiet" id="join">Kirish</button>
+    </div>
+    <div id="err" role="status"></div>
+  </section>
+
+  <div class="codefield">
+    <label for="code">Profil kodi</label>
+    <input id="code" autocomplete="off" placeholder="Bo'lsa kiriting">
+  </div>
+</main>
+
+<main class="page" id="wait" hidden>
+  <h1>Baza ochildi</h1>
+  <div class="big" id="roomCode">0000</div>
+  <p>Raqibingizga shu raqamni ayting. U Onlayn bo'limida raqamni kiritishi bilan o'yin boshlanadi.</p>
+  <p style="margin-top:22px"><button class="btn quiet" id="cancel">Bazani yopish</button></p>
+</main>
+
+<section id="game" hidden>
+  <div class="top">
+    <div class="who" id="oppName"></div>
+    <div class="sc">Ochkoyingiz <b id="myScore">0</b></div>
+  </div>
+  <div class="oppzone"><div class="fan" id="oppCards"></div></div>
+  <div class="mid">
+    <div class="deckwrap" id="deck"></div>
+    <div class="play">
+      <div class="trick" id="trick"></div>
+      <div class="lasttext" id="last"></div>
+    </div>
+  </div>
+  <div class="msg" id="msg"></div>
+  <div class="handzone"><div class="hand" id="hand"></div></div>
+  <div class="actions">
+    <button class="btn brass" id="play" disabled>Yurish</button>
+    <button class="btn quiet" id="leave">Chiqish</button>
+  </div>
+</section>
+
+<div id="over" hidden><div class="box">
+  <h2 id="oTitle"></h2><p id="oWhy"></p><p id="oScore"></p><p id="oWait"></p>
+  <div class="row"><button class="btn brass" id="again">Yana o'ynash</button><button class="btn quiet" id="exit">Chiqish</button></div>
+</div></div>
+
+<script>
+const RANKS = ["6","7","8","9","J","Q","K","10","A"];
+const $ = id => document.getElementById(id);
+const suit = c => Math.floor(c / 9), rank = c => c % 9;
+const isRed = s => s === 1 || s === 2;   // 0 qarg'a, 1 chillak, 2 g'isht, 3 xoch
+let ws, S = null, sel = new Set(), view = "lobby";
+
+$("name").value = localStorage.buraName || "";
+$("code").value = localStorage.buraCode || "";
+
+function send(o){ if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+function sendCode(){ const c = $("code").value.trim(); localStorage.buraCode = c; send({t:"code", code:c}); }
+function sendName(){ const n = $("name").value.trim(); localStorage.buraName = n; send({t:"auth", name:n || "Mehmon"}); }
+
+function connect(){
+  ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+  ws.onopen = () => { $("conn").hidden = true; sendName(); sendCode(); };
+  ws.onmessage = e => on(JSON.parse(e.data));
+  ws.onclose = () => {
+    $("conn").hidden = false;
+    if (view !== "lobby"){ S = null; setView("lobby"); }
+    setTimeout(connect, 1500);
+  };
+}
+
+function setView(v){
+  view = v;
+  $("lobby").hidden = v !== "lobby";
+  $("wait").hidden = v !== "wait";
+  $("game").hidden = v !== "game";
+  if (v !== "game") $("over").hidden = true;
+}
+
+function on(m){
+  if (m.t === "state"){ sel.clear(); S = m; $("oWait").textContent = ""; $("err").textContent = ""; setView("game"); render(); }
+  else if (m.t === "room"){ $("roomCode").textContent = m.code; setView("wait"); }
+  else if (m.t === "waiting"){ $("oWait").textContent = "Raqib javobi kutilmoqda"; }
+  else if (m.t === "opp_left"){ S = null; setView("lobby"); $("err").textContent = "Raqib o'yindan chiqib ketdi"; }
+  else if (m.t === "left"){ S = null; setView("lobby"); }
+  else if (m.t === "error"){ if (S) $("msg").textContent = m.msg; else $("err").textContent = m.msg; }
+}
+
+/* ---------- kartalarni chizish ---------- */
+const sv = (s, cls) => '<svg class="' + (cls||"") + '" viewBox="0 0 100 100"><use href="#s' + s + '"/></svg>';
+function pips(r){
+  const L = 35, R = 65, C = 50;
+  if (r === 0) return [[L,24],[R,24],[L,50],[R,50],[L,76],[R,76]];
+  if (r === 1) return [[L,24],[R,24],[L,50],[R,50],[L,76],[R,76],[C,37]];
+  if (r === 2) return [[L,24],[R,24],[L,50],[R,50],[L,76],[R,76],[C,37],[C,63]];
+  const four = [[L,20],[R,20],[L,40],[R,40],[L,60],[R,60],[L,80],[R,80]];
+  if (r === 3) return [...four,[C,50]];
+  return [...four,[C,30],[C,70]];            // 10
+}
+function cardEl(c){
+  const s = suit(c), r = rank(c), label = RANKS[r];
+  const el = document.createElement("div");
+  el.className = "card " + (isRed(s) ? "red" : "blk");
+  let h = '<div class="idx tl"><b>' + label + '</b>' + sv(s) + '</div><div class="idx br"><b>' + label + '</b>' + sv(s) + '</div><div class="field">';
+  if (r === 8) h += '<span class="pip big" style="left:50%;top:50%">' + sv(s) + '</span>';
+  else if (r >= 4 && r <= 6) h += '<div class="royal">' + sv(s) + '<b>' + label + '</b>' + sv(s) + '</div>';
+  else pips(r).forEach(p => { h += '<span class="pip' + (p[1] > 50 ? " flip" : "") + '" style="left:' + p[0] + '%;top:' + p[1] + '%">' + sv(s) + '</span>'; });
+  el.innerHTML = h + '</div>';
+  return el;
+}
+function backEl(){ const d = document.createElement("div"); d.className = "card back"; return d; }
+const tilt = c => ((c * 37) % 9 - 4);
+
+function validSel(){
+  if (!S || S.result || S.actor !== S.me || !sel.size) return false;
+  const cs = [...sel];
+  if (S.phase === "attack") return new Set(cs.map(suit)).size === 1 && cs.length <= S.oppN;
+  return cs.length === S.table.length;
+}
+
+function render(){
+  if (!S) return;
+  const mine = S.actor === S.me;
+  $("oppName").textContent = S.opp;
+  $("myScore").textContent = S.myScore;
+
+  const oc = $("oppCards"); oc.replaceChildren();
+  for (let i = 0; i < S.oppN; i++) oc.append(backEl());
+
+  const dk = $("deck"); dk.replaceChildren();
+  if (S.trumpCard !== null){
+    const u = cardEl(S.trumpCard); u.classList.add("under"); dk.append(u);
+    if (S.deckN > 1){ const b = backEl(); b.classList.add("stack"); if (S.deckN > 2) b.classList.add("two"); dk.append(b); }
+    const n = document.createElement("div"); n.className = "deckn"; n.textContent = S.deckN + " ta karta"; dk.append(n);
+  } else {
+    const d = document.createElement("div"); d.className = "suitonly " + (isRed(S.trump) ? "red" : "blk");
+    d.innerHTML = sv(S.trump); dk.append(d);
+    const n = document.createElement("div"); n.className = "deckn"; n.textContent = "Kozir"; dk.append(n);
+  }
+
+  const tr = $("trick"); tr.replaceChildren(); tr.classList.remove("old");
+  let shown = S.table, lastTxt = "";
+  if (!S.table.length && S.last){
+    shown = S.last.att.concat(S.last.def); tr.classList.add("old");
+    lastTxt = (S.last.winner === S.me ? "Yurishni siz oldingiz" : "Yurishni raqib oldi") + ", " + S.last.pts + " ochko";
+  }
+  shown.forEach(c => { const e = cardEl(c); e.style.setProperty("--rot", tilt(c) + "deg"); e.style.transform = "rotate(" + tilt(c) + "deg)"; tr.append(e); });
+  $("last").textContent = lastTxt;
+
+  const hand = $("hand"); hand.replaceChildren(); hand.classList.toggle("locked", !mine || !!S.result);
+  const cards = [...S.hand].sort((a, b) => suit(a) - suit(b) || rank(b) - rank(a));
+  const n = cards.length;
+  cards.forEach((c, i) => {
+    const e = cardEl(c), off = i - (n - 1) / 2;
+    e.style.setProperty("--r", (off * 3.2) + "deg");
+    e.style.setProperty("--y", (Math.abs(off) * Math.abs(off) * 2) + "px");
+    if (sel.has(c)) e.classList.add("sel");
+    e.onclick = () => { if (!mine || S.result) return; sel.has(c) ? sel.delete(c) : sel.add(c); render(); };
+    hand.append(e);
+  });
+
+  let msg = "";
+  if (!S.result){
+    if (S.phase === "attack") msg = mine ? "Yurishingiz: bir mastdagi karta(lar)ni tanlang" : "Raqib yuryapti";
+    else msg = mine ? "Raqib " + S.table.length + " ta karta tashladi, javob uchun " + S.table.length + " ta karta tanlang" : "Raqib javob beryapti";
+  }
+  $("msg").textContent = msg;
+  $("play").disabled = !validSel();
+
+  if (S.result){
+    const w = S.result.winner;
+    $("oTitle").textContent = w === null ? "Durang" : (w === S.me ? "Siz yutdingiz" : "Siz yutqazdingiz");
+    $("oWhy").textContent = S.result.why;
+    $("oScore").textContent = S.scores ? "Siz " + S.scores[S.me] + ", raqib " + S.scores[1 - S.me] : "";
+    $("again").disabled = false;
+    $("over").hidden = false;
+  } else $("over").hidden = true;
+}
+
+$("vsBot").onclick = () => { sendName(); sendCode(); send({t:"bot"}); };
+$("create").onclick = () => { $("err").textContent = ""; sendName(); sendCode(); send({t:"create"}); };
+$("join").onclick = () => {
+  const r = $("room").value.trim();
+  if (!/^\d{4}$/.test(r)){ $("err").textContent = "Baza raqami 4 ta raqamdan iborat"; return; }
+  $("err").textContent = ""; sendName(); sendCode(); send({t:"join", room:r});
+};
+$("room").addEventListener("input", e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4); });
+$("name").addEventListener("change", sendName);
+$("code").addEventListener("change", sendCode);
+$("cancel").onclick = () => send({t:"cancel"});
+$("play").onclick = () => { if (validSel()) send({t:"play", cards:[...sel]}); };
+$("leave").onclick = $("exit").onclick = () => send({t:"leave"});
+$("again").onclick = () => { send({t:"again"}); $("again").disabled = true; };
+
+connect();
+</script>
+</body>
+</html>
